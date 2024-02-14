@@ -3,8 +3,15 @@ import { X } from "lucide-react";
 import { ChangeEvent, FormEvent, useState } from "react";
 import { toast } from "sonner";
 
-export function NewNoteCard() {
+interface NewNoteCardProps {
+  onNoteCreated: (content: string) => void;
+}
+
+let speechRecognition: SpeechRecognition | null = null;
+
+export function NewNoteCard({ onNoteCreated }: NewNoteCardProps) {
   const [shouldShowOnboarding, setShouldShowOnboarding] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
   const [content, setContent] = useState("");
 
   function handleStartEditor() {
@@ -21,7 +28,60 @@ export function NewNoteCard() {
 
   function handleSaveNote(event: FormEvent) {
     event.preventDefault();
+
+    if (content === "") {
+      return;
+    }
+
+    onNoteCreated(content);
+    setContent("");
+    setShouldShowOnboarding(true);
     toast.success("Note saved");
+  }
+
+  function handleStartRecording() {
+    const isSpeechRecognitionAPIAvailable =
+      "speechRecognition" in window || "webkitSpeechRecognition" in window;
+
+    if (!isSpeechRecognitionAPIAvailable) {
+      toast.error("Speech recognition API not available");
+      setIsRecording(false);
+      return;
+    }
+
+    setIsRecording(true);
+    setShouldShowOnboarding(false);
+
+    const SpeechRecognitionAPI =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    speechRecognition = new SpeechRecognitionAPI();
+
+    speechRecognition.lang = "en-US";
+    speechRecognition.continuous = true;
+    speechRecognition.maxAlternatives = 1;
+    speechRecognition.interimResults = true;
+
+    speechRecognition.onresult = (event) => {
+      const transcription = Array.from(event.results).reduce((text, result) => {
+        return text.concat(result[0].transcript);
+      }, "");
+      setContent(transcription);
+    };
+
+    speechRecognition.onerror = (event) => {
+      console.error(event);
+    };
+
+    speechRecognition.start();
+  }
+
+  function handleStopRecording() {
+    setIsRecording(false);
+
+    if (speechRecognition) {
+      speechRecognition.stop();
+    }
   }
 
   return (
@@ -43,7 +103,7 @@ export function NewNoteCard() {
             <X className="size-5" />
           </Dialog.Close>
 
-          <form className="flex flex-1 flex-col" onSubmit={handleSaveNote}>
+          <form className="flex flex-1 flex-col">
             <div className="flex flex-1 flex-col gap-3 p-5">
               <span className="text-sm font-medium text-slate-300">
                 Add note
@@ -51,11 +111,16 @@ export function NewNoteCard() {
 
               {shouldShowOnboarding ? (
                 <p className="text-sm leading-6 text-slate-400">
-                  <button className="font-medium text-lime-400 hover:underline">
+                  <button
+                    type="button"
+                    onClick={handleStartRecording}
+                    className="font-medium text-lime-400 hover:underline"
+                  >
                     Record an audio
                   </button>{" "}
                   note that will be automatically converted to text or{" "}
                   <button
+                    type="button"
                     className="font-medium text-lime-400 hover:underline"
                     onClick={handleStartEditor}
                   >
@@ -68,15 +133,29 @@ export function NewNoteCard() {
                   autoFocus
                   className="text-sm leading-6 text-slate-400 bg-transparent outline-none resize-none flex-1"
                   onChange={handleContentChange}
+                  value={content}
                 />
               )}
             </div>
-            <button
-              type="submit"
-              className="w-full bg-lime-400 hover:bg-lime-500 py-4 text-center text-sm text-lime-950 outline-none font-medium"
-            >
-              Save
-            </button>
+
+            {isRecording ? (
+              <button
+                type="button"
+                onClick={handleStopRecording}
+                className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-100 py-4 text-center text-sm text-slate-300 outline-none font-medium"
+              >
+                <div className="size-3 rounded-full bg-red-500 animate-pulse" />
+                Recording... (click to stop)
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSaveNote}
+                className="w-full bg-lime-400 hover:bg-lime-500 py-4 text-center text-sm text-lime-950 outline-none font-medium"
+              >
+                Save
+              </button>
+            )}
           </form>
         </Dialog.Content>
       </Dialog.Portal>
