@@ -32,6 +32,12 @@ export function App() {
     localStorage.setItem("@SuperNotes1.0.0:notes", JSON.stringify(notesArray));
   }
 
+  function onNoteDelete(id: string) {
+    const newNotes = notes.filter((note) => note.id !== id);
+    setNotes(newNotes);
+    localStorage.setItem("@SuperNotes1.0.0:notes", JSON.stringify(newNotes));
+  }
+
   function handleSearch(event: ChangeEvent<HTMLInputElement>) {
     const query = event.target.value;
     setSearch(query);
@@ -45,7 +51,7 @@ export function App() {
       : notes;
 
   return (
-    <div className="mx-auto max-w-6xl my-12 space-y-6">
+    <div className="mx-auto max-w-6xl my-12 space-y-6 px-5">
       <h1 className="text-4xl font-bold text-slate-800">Super Notes</h1>
 
       <form className="w-full">
@@ -59,10 +65,10 @@ export function App() {
 
       <div className="h-px bg-slate-700" />
 
-      <div className="grid grid-cols-3 auto-rows-[250px] gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 auto-rows-[250px] gap-6">
         <NewNoteCard onNoteCreated={onNoteCreated} />
         {filteredNotes.map((note) => (
-          <NoteCard key={note.id} note={note} />
+          <NoteCard key={note.id} note={note} onNoteDelete={onNoteDelete} />
         ))}
       </div>
     </div>
