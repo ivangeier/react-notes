@@ -10,6 +10,7 @@ Introducing Super Notes, a sleek React-based project designed for seamless note-
 
 1. React
 2. Speech recognition
+3. Tailwind
 
 ## Installation
 
